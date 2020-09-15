@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"
+        integrity="sha384-LtrjvnR4Twt/qOuYxE721u19sVFLVSA4hf/rRt6PrZTmiPltdZcI7q7PXQBYTKyf" crossorigin="anonymous">
+    </script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"
+        integrity="sha384-B4gt1jrGC7Jh4AgTPSdUtOBvfO8shuf57BaghqFfPlYxofvL8/KUEfYiJOMMV+rV" crossorigin="anonymous">
+    </script>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+        integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
+</head>
+
+<body>
+    <br><br><br><br><br><br><br><br>
+    <button class="btn btn-block text-center btn-info" id="stopvideo">
+        <h4>
+            <b>
+                Stop Video
+            </b>
+        </h4>
+    </button>
+    <br><br>
+    <hr>
+    <button class="btn btn-block btn-warning text-center" type="button">
+        <a href="" download id="downloadvideo">
+            <h4>
+                <strong>
+                    Download
+                </strong>
+            </h4>
+        </a>
+    </button>
+    <hr>
+    <span style="margin-left: 38px;"></span>
+    <% if(files) { %>
+    <% files.forEach(function(file) {%>
+    <div class="card" style="display:inline-block;">
+        <div class="card-header text-primary">
+            <div class="card-title">
+                <%= file.filename %>
+            </div>
+        </div>
+        <div class="card-body">
+            <% if (file) { %>
+            <video src="/video/<%= file.filename %>" style="height: 300px; width: 400px;" autoplay="true" loop controls>
+                <%} else { %>
+                <p><% file.filename %></p>
+                <% } %>
+                </div>
+            </div>
+    <%}) %>
+    <% } else { %>
+    <p>No files to show</p>
+    <% } %>
+
+</body>
+
+<script>
+    videoRecord();
+
+
+    stopVideo = document.getElementById("stopvideo");
+
+
+    async function videoRecord() {
+        const stream = await navigator.mediaDevices.getDisplayMedia({
+            video: true,
+        })
+        const mediaRecorder = new MediaRecorder(stream);
+        console.log("Screen RECORDING STARTED");
+        mediaRecorder.start();
+
+        stopVideo.addEventListener("click", function () {
+            console.log("In Stop Video Event Listener");
+            mediaRecorder.stop();
+        })
+
+        const chunks_video = [];
+        mediaRecorder.onstop = function (e) {
+            console.log("DONE WITH VIDEO");
+            const blob = new Blob(chunks_video, {
+                'type': chunks_video[0].type
+            });
+            console.log(chunks_video.length)
+            const videoURL = window.URL.createObjectURL(blob);
+            console.log(videoURL);
+            var link = document.getElementById("downloadvideo");
+            link.href = videoURL;
+
+            var data = new FormData();
+            data.append('video_' + Date.now(), blob); //Correct: sending the Blob itself
+            for (var key of data.entries()) {
+                console.log(key[0] + ', ' + key[1]);
+            }
+
+            $.ajax({
+                type: "POST",
+                enctype: 'multipart/form-data',
+                url: "/",
+                data: data,
+                processData: false,
+                contentType: false,
+                cache: false,
+                success: function (data) {
+                    console.log("Video Post request Sent");
+                },
+                error: function (e) {
+                    console.log("ERROR : ", e);
+                }
+            });
+        }
+        mediaRecorder.ondataavailable = function (e) {
+            chunks_video.push(e.data);
+        }
+    }
+</script>
+
+</html>
